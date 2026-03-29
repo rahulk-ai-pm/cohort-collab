@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { Bell, FolderKanban, BookOpen, MessageSquare, Users, ChevronRight, Linkedin, ExternalLink, Pencil } from 'lucide-react';
+import { Bell, FolderKanban, BookOpen, MessageSquare, Users, ChevronRight, Linkedin, ExternalLink, Pencil, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -141,8 +141,8 @@ export default function DashboardPage() {
 
   const markRead = async (id) => {
     try {
-      await axios.put(`${API}/notifications/${id}/read`, {}, { withCredentials: true });
-      setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, read: true } : n));
+      await axios.delete(`${API}/notifications/${id}`, { withCredentials: true });
+      setNotifications(prev => prev.filter(n => n.notification_id !== id));
     } catch { /* ignore */ }
   };
 
@@ -252,12 +252,11 @@ export default function DashboardPage() {
             {notifications.length === 0 ? (
               <div className="px-6 py-12 text-center text-sm text-slate-400">No notifications yet</div>
             ) : (
-              <div className="divide-y divide-slate-50">
+              <div className="divide-y divide-slate-50 pb-4">
                 {notifications.map(n => (
                   <div
                     key={n.notification_id}
-                    className={`flex items-start gap-3 px-6 py-4 hover:bg-slate-50/50 transition-colors cursor-pointer ${!n.read ? 'bg-blue-50/30' : ''}`}
-                    onClick={() => !n.read && markRead(n.notification_id)}
+                    className={`flex items-start gap-3 px-6 py-4 hover:bg-slate-50/50 transition-colors ${!n.read ? 'bg-blue-50/30' : ''}`}
                     data-testid={`notification-${n.notification_id}`}
                   >
                     <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${!n.read ? 'bg-red-500' : 'bg-slate-200'}`} />
@@ -268,12 +267,22 @@ export default function DashboardPage() {
                         {new Date(n.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <Link
-                      to={n.type === 'new_project' || n.type === 'teams_published' ? `/projects/${n.entity_id}` : n.type === 'new_case_study' ? `/case-studies/${n.entity_id}` : `/discussions/${n.entity_id}`}
-                      className="text-slate-400 hover:text-slate-600"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Link>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => markRead(n.notification_id)}
+                        className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 hover:text-emerald-600 transition-colors"
+                        title="Mark as read"
+                        data-testid={`dismiss-notification-${n.notification_id}`}
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                      <Link
+                        to={n.type === 'new_project' || n.type === 'teams_published' ? `/projects/${n.entity_id}` : n.type === 'new_case_study' ? `/case-studies/${n.entity_id}` : `/discussions/${n.entity_id}`}
+                        className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
+                    </div>
                   </div>
                 ))}
               </div>

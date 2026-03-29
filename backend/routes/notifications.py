@@ -29,3 +29,11 @@ async def mark_all_read(request: Request):
         {"$set": {"read": True}}
     )
     return {"message": "All marked as read"}
+
+@router.delete("/notifications/{notif_id}")
+async def dismiss_notification(notif_id: str, request: Request):
+    user = await get_current_user(request)
+    await db.notifications.delete_one(
+        {"notification_id": notif_id, "user_id": user["user_id"]}
+    )
+    return {"message": "Notification dismissed"}
