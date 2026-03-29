@@ -8,8 +8,8 @@ from datetime import datetime
 class CohortLearningAPITester:
     def __init__(self, base_url="https://course-collab.preview.emergentagent.com"):
         self.base_url = base_url
-        self.member_token = "test_session_1774764379054"
-        self.admin_token = "admin_session_1774764384141"
+        self.member_token = "member_test_session"
+        self.admin_token = "admin_test_session"
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []
@@ -133,7 +133,7 @@ class CohortLearningAPITester:
             "linkedin_url": "https://linkedin.com/in/updated"
         }
         
-        success, _ = self.run_test(
+        success1, _ = self.run_test(
             "Profile Onboarding Update",
             "PUT",
             "profile/onboarding",
@@ -142,7 +142,32 @@ class CohortLearningAPITester:
             token=self.member_token
         )
         
-        return success
+        # Test NEW FEATURE: profile update with skills
+        profile_update_data = {
+            "professional_experience": "Senior PM with 8+ years experience",
+            "current_role": "Senior Product Manager at TechCorp",
+            "aspirations": "VP of Product Strategy",
+            "linkedin_url": "https://linkedin.com/in/testuser",
+            "skills": ["Product Strategy", "Data Analysis", "Leadership", "Agile/Scrum"]
+        }
+        
+        success2, updated_profile = self.run_test(
+            "Profile Update with Skills",
+            "PUT",
+            "profile/update",
+            200,
+            data=profile_update_data,
+            token=self.member_token
+        )
+        
+        if success2 and updated_profile:
+            skills = updated_profile.get('skills', [])
+            if len(skills) == 4 and "Product Strategy" in skills:
+                print("✅ Profile skills updated correctly")
+            else:
+                print(f"❌ Skills update failed - got: {skills}")
+        
+        return success1 and success2
 
     def test_members_endpoints(self):
         """Test members/directory endpoints"""
@@ -295,7 +320,7 @@ class CohortLearningAPITester:
         return success1 and success2 and success3 and success4
 
     def test_discussion_endpoints(self):
-        """Test discussion endpoints"""
+        """Test discussion endpoints including NEW edit/delete features"""
         print("\n" + "="*50)
         print("TESTING DISCUSSION ENDPOINTS")
         print("="*50)
@@ -334,6 +359,7 @@ class CohortLearningAPITester:
         
         # Test post discussion message
         success3 = True
+        msg_id = None
         if disc_id:
             message_data = {"content": "This is a test message for the discussion"}
             success3, message_response = self.run_test(
@@ -344,8 +370,157 @@ class CohortLearningAPITester:
                 data=message_data,
                 token=self.member_token
             )
+            if success3 and message_response:
+                msg_id = message_response.get('message_id')
+                print(f"✅ Created message with ID: {msg_id}")
         
-        return success1 and success2 and success3
+        # NEW FEATURE: Test edit discussion (member owns)
+        success4 = True
+        if disc_id:
+            edit_data = {
+                "title": "Updated Test Discussion API",
+                "content": "This discussion content has been updated"
+            }
+            success4, edit_response = self.run_test(
+                "Edit Own Discussion",
+                "PUT",
+                f"discussions/{disc_id}",
+                200,
+                data=edit_data,
+                token=self.member_token
+            )
+            if success4 and edit_response:
+                if edit_response.get('edited_at'):
+                    print("✅ Discussion edit timestamp added")
+                else:
+                    print("❌ Discussion edit timestamp missing")
+        
+        # NEW FEATURE: Test edit discussion message (member owns)
+        success5 = True
+        if disc_id and msg_id:
+            edit_msg_data = {"content": "This message has been updated"}
+            success5, edit_msg_response = self.run_test(
+                "Edit Own Discussion Message",
+                "PUT",
+                f"discussions/{disc_id}/messages/{msg_id}",
+                200,
+                data=edit_msg_data,
+                token=self.member_token
+            )
+            if success5 and edit_msg_response:
+                if edit_msg_response.get('edited_at'):
+                    print("✅ Message edit timestamp added")
+                else:
+                    print("❌ Message edit timestamp missing")
+        
+        return success1 and success2 and success3 and success4 and success5
+
+    def test_discussion_authorization_features(self):
+        """Test NEW authorization features for discussions"""
+        print("\n" + "="*50)
+        print("TESTING DISCUSSION AUTHORIZATION FEATURES")
+        print("="*50)
+        
+        # First, create a discussion as member
+        discussion_data = {
+            "title": "Member Discussion for Auth Test",
+            "content": "This discussion is created by member for authorization testing"
+        }
+        
+        success1, disc_response = self.run_test(
+            "Create Discussion as Member",
+            "POST",
+            "discussions",
+            200,
+            data=discussion_data,
+            token=self.member_token
+        )
+        
+        disc_id = None
+        msg_id = None
+        if success1 and disc_response:
+            disc_id = disc_response.get('discussion_id')
+            print(f"✅ Created discussion with ID: {disc_id}")
+            
+            # Add a message to test message deletion
+            message_data = {"content": "Test message for deletion"}
+            success_msg, msg_response = self.run_test(
+                "Add Message for Auth Test",
+                "POST",
+                f"discussions/{disc_id}/messages",
+                200,
+                data=message_data,
+                token=self.member_token
+            )
+            if success_msg and msg_response:
+                msg_id = msg_response.get('message_id')
+        
+        # Test: Admin can delete any discussion message (NEW FEATURE)
+        success2 = True
+        if disc_id and msg_id:
+            success2, _ = self.run_test(
+                "Admin Delete Discussion Message",
+                "DELETE",
+                f"discussions/{disc_id}/messages/{msg_id}",
+                200,
+                token=self.admin_token
+            )
+        
+        # Test: Member can delete own discussion (NEW FEATURE)
+        success3 = True
+        if disc_id:
+            success3, _ = self.run_test(
+                "Member Delete Own Discussion",
+                "DELETE",
+                f"discussions/{disc_id}",
+                200,
+                token=self.member_token
+            )
+        
+        # Test: Create another discussion to test non-author restrictions
+        discussion_data2 = {
+            "title": "Admin Discussion for Auth Test",
+            "content": "This discussion is created by admin for authorization testing"
+        }
+        
+        success4, disc_response2 = self.run_test(
+            "Create Discussion as Admin",
+            "POST",
+            "discussions",
+            200,
+            data=discussion_data2,
+            token=self.admin_token
+        )
+        
+        disc_id2 = None
+        if success4 and disc_response2:
+            disc_id2 = disc_response2.get('discussion_id')
+        
+        # Test: Non-author cannot edit discussion (should get 403)
+        success5 = True
+        if disc_id2:
+            edit_data = {"title": "Unauthorized Edit", "content": "This should fail"}
+            success5, _ = self.run_test(
+                "Non-author Edit Discussion (should fail)",
+                "PUT",
+                f"discussions/{disc_id2}",
+                403,  # Expecting 403 Forbidden
+                data=edit_data,
+                token=self.member_token
+            )
+        
+        # Test: Non-author cannot delete discussion (should get 403)
+        success6 = True
+        if disc_id2:
+            success6, _ = self.run_test(
+                "Non-author Delete Discussion (should fail)",
+                "DELETE",
+                f"discussions/{disc_id2}",
+                403,  # Expecting 403 Forbidden
+                token=self.member_token
+            )
+        
+        return success1 and success2 and success3 and success4 and success5 and success6
 
     def test_chatbot_endpoints(self):
         """Test chatbot endpoints"""
@@ -440,6 +615,7 @@ def main():
     test_results.append(("Admin Project Endpoints", tester.test_admin_project_endpoints()))
     test_results.append(("Admin Case Study Endpoints", tester.test_admin_case_study_endpoints()))
     test_results.append(("Discussion Endpoints", tester.test_discussion_endpoints()))
+    test_results.append(("Discussion Authorization Features", tester.test_discussion_authorization_features()))
     test_results.append(("Chatbot Endpoints", tester.test_chatbot_endpoints()))
     test_results.append(("Notification Endpoints", tester.test_notification_endpoints()))
     test_results.append(("Admin Analytics Endpoints", tester.test_admin_analytics_endpoints()))

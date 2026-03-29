@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Send, FileText, ExternalLink, MessageSquare, Info } from 'lucide-react';
+import { ArrowLeft, Send, FileText, ExternalLink, MessageSquare, Info, Download } from 'lucide-react';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -123,12 +123,24 @@ export default function CaseStudyDetailPage() {
           <TabsContent value="files" className="mt-4">
             <div className="space-y-2">
               {study.files?.map(f => (
-                <div key={f.file_id} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-slate-400" />
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{f.original_filename}</p>
-                    <p className="text-xs text-slate-400 font-mono">{(f.size / 1024).toFixed(1)} KB</p>
+                <div key={f.file_id} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between" data-testid={`file-${f.file_id}`}>
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-slate-400" />
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{f.original_filename}</p>
+                      <p className="text-xs text-slate-400 font-mono">{(f.size / 1024).toFixed(1)} KB</p>
+                    </div>
                   </div>
+                  <a
+                    href={`${process.env.REACT_APP_BACKEND_URL}/api/files/${f.storage_path}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
+                    data-testid={`download-${f.file_id}`}
+                    title="Download file"
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
                 </div>
               ))}
               {(!study.files || study.files.length === 0) && (

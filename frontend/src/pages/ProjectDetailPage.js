@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Users, FileText, ExternalLink, Linkedin, Sparkles, Heart, CheckCircle, Target } from 'lucide-react';
+import { ArrowLeft, Users, FileText, ExternalLink, Linkedin, Sparkles, Heart, CheckCircle, Target, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -328,7 +328,7 @@ export default function ProjectDetailPage() {
           <TabsContent value="files" className="mt-4">
             <div className="space-y-2">
               {project.files?.map(f => (
-                <div key={f.file_id} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between">
+                <div key={f.file_id} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between" data-testid={`file-${f.file_id}`}>
                   <div className="flex items-center gap-3">
                     <FileText className="w-5 h-5 text-slate-400" />
                     <div>
@@ -336,6 +336,16 @@ export default function ProjectDetailPage() {
                       <p className="text-xs text-slate-400 font-mono">{(f.size / 1024).toFixed(1)} KB</p>
                     </div>
                   </div>
+                  <a
+                    href={`${API}/files/${f.storage_path}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
+                    data-testid={`download-${f.file_id}`}
+                    title="Download file"
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
                 </div>
               ))}
               {(!project.files || project.files.length === 0) && (

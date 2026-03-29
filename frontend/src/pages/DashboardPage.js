@@ -1,18 +1,121 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { Bell, FolderKanban, BookOpen, MessageSquare, Users, ChevronRight, Linkedin, ExternalLink } from 'lucide-react';
+import { Bell, FolderKanban, BookOpen, MessageSquare, Users, ChevronRight, Linkedin, ExternalLink, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+const ALL_SKILLS = [
+  "Data Analysis", "Market Research", "Product Strategy", "Financial Modeling",
+  "Tech/Prototyping", "UX/Design", "Marketing/GTM", "Business Development",
+  "Operations", "Leadership", "Project Management", "Agile/Scrum",
+  "Consumer Insights", "Competitive Analysis", "Pricing Strategy",
+  "Supply Chain", "Digital Marketing", "Sales Strategy"
+];
+
+function ProfileEditDialog({ open, onOpenChange, user, onSaved }) {
+  const [form, setForm] = useState({
+    professional_experience: user?.professional_experience || '',
+    current_role: user?.current_role || '',
+    aspirations: user?.aspirations || '',
+    linkedin_url: user?.linkedin_url || '',
+    skills: user?.skills || []
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        professional_experience: user.professional_experience || '',
+        current_role: user.current_role || '',
+        aspirations: user.aspirations || '',
+        linkedin_url: user.linkedin_url || '',
+        skills: user.skills || []
+      });
+    }
+  }, [user, open]);
+
+  const toggleSkill = (skill) => {
+    setForm(f => ({
+      ...f,
+      skills: f.skills.includes(skill) ? f.skills.filter(s => s !== skill) : [...f.skills, skill]
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!form.current_role || !form.professional_experience || !form.aspirations) {
+      toast.error('Please fill required fields');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await axios.put(`${API}/profile/update`, form, { withCredentials: true });
+      onSaved(res.data);
+      onOpenChange(false);
+      toast.success('Profile updated');
+    } catch { toast.error('Update failed'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Edit Profile</DialogTitle></DialogHeader>
+        <div className="space-y-4 pt-2">
+          <div>
+            <Label className="text-sm font-semibold text-slate-700">Current Role *</Label>
+            <Input value={form.current_role} onChange={e => setForm(f => ({ ...f, current_role: e.target.value }))}
+              className="mt-1 bg-slate-50" data-testid="edit-current-role" />
+          </div>
+          <div>
+            <Label className="text-sm font-semibold text-slate-700">Professional Experience *</Label>
+            <Textarea value={form.professional_experience} onChange={e => setForm(f => ({ ...f, professional_experience: e.target.value }))}
+              className="mt-1 bg-slate-50 min-h-[80px]" data-testid="edit-experience" />
+          </div>
+          <div>
+            <Label className="text-sm font-semibold text-slate-700">Skills</Label>
+            <div className="flex flex-wrap gap-1.5 mt-2" data-testid="edit-skills">
+              {ALL_SKILLS.map(skill => (
+                <button key={skill} type="button" onClick={() => toggleSkill(skill)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                    form.skills.includes(skill) ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                  }`}>{skill}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label className="text-sm font-semibold text-slate-700">Aspirations *</Label>
+            <Textarea value={form.aspirations} onChange={e => setForm(f => ({ ...f, aspirations: e.target.value }))}
+              className="mt-1 bg-slate-50 min-h-[60px]" data-testid="edit-aspirations" />
+          </div>
+          <div>
+            <Label className="text-sm font-semibold text-slate-700">LinkedIn URL</Label>
+            <Input value={form.linkedin_url} onChange={e => setForm(f => ({ ...f, linkedin_url: e.target.value }))}
+              className="mt-1 bg-slate-50" data-testid="edit-linkedin" />
+          </div>
+          <Button onClick={handleSave} disabled={saving} className="w-full bg-slate-800 hover:bg-slate-900" data-testid="save-profile-btn">
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [stats, setStats] = useState({ projects: 0, caseStudies: 0, discussions: 0, members: 0 });
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,19 +186,30 @@ export default function DashboardPage() {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-slate-900 truncate">{user?.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-900 truncate">{user?.name}</h3>
+                  <button onClick={() => setEditOpen(true)} className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors" data-testid="edit-profile-btn" title="Edit profile">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                </div>
                 <p className="text-sm text-slate-500 truncate">{user?.current_role || 'APM Participant'}</p>
                 {user?.linkedin_url && (
                   <a href={user.linkedin_url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-1"
-                  >
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-1">
                     <Linkedin className="w-3 h-3" /> LinkedIn <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
               </div>
             </div>
+            {user?.skills?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-4 pt-3 border-t border-slate-100">
+                {user.skills.map(s => (
+                  <span key={s} className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded-md font-medium">{s}</span>
+                ))}
+              </div>
+            )}
             {user?.aspirations && (
-              <p className="text-sm text-slate-600 mt-4 border-t border-slate-100 pt-4">{user.aspirations}</p>
+              <p className="text-sm text-slate-600 mt-3 border-t border-slate-100 pt-3">{user.aspirations}</p>
             )}
           </div>
 
@@ -155,7 +269,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     <Link
-                      to={n.type === 'new_project' ? `/projects/${n.entity_id}` : n.type === 'new_case_study' ? `/case-studies/${n.entity_id}` : `/discussions/${n.entity_id}`}
+                      to={n.type === 'new_project' || n.type === 'teams_published' ? `/projects/${n.entity_id}` : n.type === 'new_case_study' ? `/case-studies/${n.entity_id}` : `/discussions/${n.entity_id}`}
                       className="text-slate-400 hover:text-slate-600"
                     >
                       <ChevronRight className="w-4 h-4" />
@@ -167,6 +281,8 @@ export default function DashboardPage() {
           </ScrollArea>
         </div>
       </div>
+
+      <ProfileEditDialog open={editOpen} onOpenChange={setEditOpen} user={user} onSaved={(updated) => setUser(updated)} />
     </div>
   );
 }

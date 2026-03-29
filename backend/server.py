@@ -884,6 +884,60 @@ async def post_discussion_message(disc_id: str, data: MessageCreate, request: Re
     del msg["_id"]
     return msg
 
+# ─── Discussion Edit/Delete (member owns) ───
+@api_router.put("/discussions/{disc_id}")
+async def edit_discussion(disc_id: str, data: DiscussionCreate, request: Request):
+    user = await get_current_user(request)
+    disc = await db.discussions.find_one({"discussion_id": disc_id}, {"_id": 0})
+    if not disc:
+        raise HTTPException(status_code=404, detail="Discussion not found")
+    if disc["author_id"] != user["user_id"] and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    await db.discussions.update_one(
+        {"discussion_id": disc_id},
+        {"$set": {"title": data.title, "content": data.content, "edited_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    updated = await db.discussions.find_one({"discussion_id": disc_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/discussions/{disc_id}")
+async def delete_own_discussion(disc_id: str, request: Request):
+    user = await get_current_user(request)
+    disc = await db.discussions.find_one({"discussion_id": disc_id}, {"_id": 0})
+    if not disc:
+        raise HTTPException(status_code=404, detail="Discussion not found")
+    if disc["author_id"] != user["user_id"] and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    await db.discussions.delete_one({"discussion_id": disc_id})
+    await db.discussion_messages.delete_many({"discussion_id": disc_id})
+    return {"message": "Discussion deleted"}
+
+@api_router.put("/discussions/{disc_id}/messages/{msg_id}")
+async def edit_discussion_message(disc_id: str, msg_id: str, data: MessageCreate, request: Request):
+    user = await get_current_user(request)
+    msg = await db.discussion_messages.find_one({"message_id": msg_id, "discussion_id": disc_id}, {"_id": 0})
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if msg["author_id"] != user["user_id"] and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    await db.discussion_messages.update_one(
+        {"message_id": msg_id},
+        {"$set": {"content": data.content, "edited_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    updated = await db.discussion_messages.find_one({"message_id": msg_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/discussions/{disc_id}/messages/{msg_id}")
+async def delete_discussion_message(disc_id: str, msg_id: str, request: Request):
+    user = await get_current_user(request)
+    msg = await db.discussion_messages.find_one({"message_id": msg_id, "discussion_id": disc_id}, {"_id": 0})
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if msg["author_id"] != user["user_id"] and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    await db.discussion_messages.delete_one({"message_id": msg_id})
+    return {"message": "Message deleted"}
+
 # ─── Chatbot ───
 @api_router.post("/chatbot/message")
 async def chatbot_send(data: ChatbotMessage, request: Request):
