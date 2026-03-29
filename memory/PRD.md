@@ -50,9 +50,17 @@ Build a cohort learning app for the IIM Kozhikode Advanced Product Management (B
   - Admin publishes teams → all members notified
   - Members see their assigned team under project detail
 
+  - [x] **Admin Moderation** (March 29, 2026)
+    - Delete discussions (and all associated messages)
+    - Remove members (deletes account, sessions, chat history, preferences, notifications)
+    - Block members (adds to blocked emails list, kills sessions, prevents re-sign-up)
+    - Unblock members
+    - Members tab with search, status badges (Active/Pending/Blocked), and action buttons
+
 ## Testing Results
 - Iteration 1: Backend 100% (20/20), Frontend 95%
 - Iteration 2 (Team Formation): Backend 100% (13/13), Frontend 100%
+- Iteration 3 (Admin Moderation): Backend 100% (14/14), Frontend 100%
 
 ## Prioritized Backlog
 
