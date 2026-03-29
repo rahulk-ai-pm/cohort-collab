@@ -977,13 +977,15 @@ If asked about something unrelated, politely redirect to program topics.
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.chat_messages.insert_one(user_msg_doc)
+    user_msg_doc.pop("_id", None)
 
     # Track chatbot interaction for analytics
-    await db.chatbot_analytics.insert_one({
+    analytics_doc = {
         "user_id": user_id,
         "query": data.message,
         "created_at": datetime.now(timezone.utc).isoformat()
-    })
+    }
+    await db.chatbot_analytics.insert_one(analytics_doc)
 
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage
@@ -1015,8 +1017,7 @@ If asked about something unrelated, politely redirect to program topics.
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.chat_messages.insert_one(assistant_msg)
-        del user_msg_doc["_id"]
-        del assistant_msg["_id"]
+        assistant_msg.pop("_id", None)
 
         return {"user_message": user_msg_doc, "assistant_message": assistant_msg}
     except Exception as e:
@@ -1029,7 +1030,7 @@ If asked about something unrelated, politely redirect to program topics.
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.chat_messages.insert_one(error_msg)
-        del error_msg["_id"]
+        error_msg.pop("_id", None)
         return {"user_message": user_msg_doc, "assistant_message": error_msg}
 
 @api_router.get("/chatbot/history")

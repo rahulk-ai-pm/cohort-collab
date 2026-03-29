@@ -57,10 +57,20 @@ Build a cohort learning app for the IIM Kozhikode Advanced Product Management (B
     - Unblock members
     - Members tab with search, status badges (Active/Pending/Blocked), and action buttons
 
+  - [x] **Member Self-Service & File Downloads** (March 29, 2026)
+    - Profile editing post-onboarding (edit role, experience, aspirations, skills, LinkedIn)
+    - File download buttons on project and case study detail pages
+    - Members can edit and delete their own discussions
+    - Members can edit and delete their own discussion messages
+    - Admin can delete any discussion message
+    - (edited) label shown on modified discussions/messages
+    - Fixed chatbot ObjectId serialization bug
+
 ## Testing Results
 - Iteration 1: Backend 100% (20/20), Frontend 95%
 - Iteration 2 (Team Formation): Backend 100% (13/13), Frontend 100%
 - Iteration 3 (Admin Moderation): Backend 100% (14/14), Frontend 100%
+- Iteration 4 (Self-Service + Downloads): Backend 96.7%, Frontend 95% → chatbot fix applied
 
 ## Prioritized Backlog
 
