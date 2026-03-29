@@ -7,6 +7,7 @@ class OnboardingData(BaseModel):
     aspirations: str
     linkedin_url: Optional[str] = ""
     skills: Optional[List[str]] = []
+    residing_in: Optional[str] = ""
 
 class ProjectCreate(BaseModel):
     title: str

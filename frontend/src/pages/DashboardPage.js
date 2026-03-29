@@ -27,7 +27,8 @@ function ProfileEditDialog({ open, onOpenChange, user, onSaved }) {
     current_role: user?.current_role || '',
     aspirations: user?.aspirations || '',
     linkedin_url: user?.linkedin_url || '',
-    skills: user?.skills || []
+    skills: user?.skills || [],
+    residing_in: user?.residing_in || ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -38,7 +39,8 @@ function ProfileEditDialog({ open, onOpenChange, user, onSaved }) {
         current_role: user.current_role || '',
         aspirations: user.aspirations || '',
         linkedin_url: user.linkedin_url || '',
-        skills: user.skills || []
+        skills: user.skills || [],
+        residing_in: user.residing_in || ''
       });
     }
   }, [user, open]);
@@ -100,6 +102,12 @@ function ProfileEditDialog({ open, onOpenChange, user, onSaved }) {
             <Label className="text-sm font-semibold text-slate-700">LinkedIn URL</Label>
             <Input value={form.linkedin_url} onChange={e => setForm(f => ({ ...f, linkedin_url: e.target.value }))}
               className="mt-1 bg-slate-50" data-testid="edit-linkedin" />
+          </div>
+          <div>
+            <Label className="text-sm font-semibold text-slate-700">Residing in</Label>
+            <Input value={form.residing_in} onChange={e => setForm(f => ({ ...f, residing_in: e.target.value }))}
+              placeholder="e.g. Mumbai, India"
+              className="mt-1 bg-slate-50" data-testid="edit-residing-in" />
           </div>
           <Button onClick={handleSave} disabled={saving} className="w-full bg-slate-800 hover:bg-slate-900" data-testid="save-profile-btn">
             {saving ? 'Saving...' : 'Save Changes'}

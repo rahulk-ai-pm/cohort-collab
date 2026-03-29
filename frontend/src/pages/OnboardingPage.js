@@ -28,7 +28,8 @@ export default function OnboardingPage() {
     current_role: '',
     aspirations: '',
     linkedin_url: '',
-    skills: []
+    skills: [],
+    residing_in: ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -181,6 +182,17 @@ export default function OnboardingPage() {
                 placeholder="https://linkedin.com/in/yourprofile"
                 value={form.linkedin_url}
                 onChange={e => setForm(f => ({ ...f, linkedin_url: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label className="text-sm font-semibold text-slate-700">Residing in</Label>
+              <Input
+                data-testid="onboarding-residing-in"
+                className="mt-1.5 bg-slate-50 border-slate-200 focus:ring-2 focus:ring-slate-800"
+                placeholder="e.g. Mumbai, India"
+                value={form.residing_in}
+                onChange={e => setForm(f => ({ ...f, residing_in: e.target.value }))}
               />
             </div>
           </div>

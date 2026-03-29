@@ -17,6 +17,7 @@ async def complete_onboarding(data: OnboardingData, request: Request):
             "aspirations": data.aspirations,
             "linkedin_url": data.linkedin_url,
             "skills": data.skills or [],
+            "residing_in": data.residing_in or "",
             "onboarding_complete": True
         }}
     )
@@ -34,6 +35,7 @@ async def update_profile(data: OnboardingData, request: Request):
             "aspirations": data.aspirations,
             "linkedin_url": data.linkedin_url,
             "skills": data.skills or [],
+            "residing_in": data.residing_in or "",
         }}
     )
     updated = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0})

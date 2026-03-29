@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Linkedin, ExternalLink } from 'lucide-react';
+import { Search, Linkedin, ExternalLink, MapPin } from 'lucide-react';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -16,11 +16,14 @@ export default function DirectoryPage() {
       .catch(() => {});
   }, []);
 
-  const filtered = members.filter(m =>
-    m.name?.toLowerCase().includes(search.toLowerCase()) ||
-    m.current_role?.toLowerCase().includes(search.toLowerCase()) ||
-    m.aspirations?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = members
+    .filter(m =>
+      m.name?.toLowerCase().includes(search.toLowerCase()) ||
+      m.current_role?.toLowerCase().includes(search.toLowerCase()) ||
+      m.aspirations?.toLowerCase().includes(search.toLowerCase()) ||
+      m.residing_in?.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   return (
     <div className="min-h-screen bg-slate-50" data-testid="directory-page">
@@ -36,12 +39,12 @@ export default function DirectoryPage() {
             data-testid="directory-search"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, role, or aspirations..."
+            placeholder="Search by name, role, aspirations, or location..."
             className="pl-10 bg-white border-slate-200"
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((m, i) => (
             <div
               key={m.user_id}
@@ -57,19 +60,32 @@ export default function DirectoryPage() {
                   </div>
                 )}
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-slate-900 text-sm truncate">{m.name}</h3>
-                  <p className="text-xs text-slate-500 truncate">{m.current_role}</p>
+                  <h3 className="font-semibold text-slate-900 text-sm">{m.name}</h3>
+                  <p className="text-xs text-slate-500">{m.current_role}</p>
+                  {m.residing_in && (
+                    <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                      <MapPin className="w-3 h-3 shrink-0" />{m.residing_in}
+                    </p>
+                  )}
                 </div>
               </div>
+              {m.professional_experience && (
+                <div className="mt-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Experience</p>
+                  <p className="text-xs text-slate-600 leading-relaxed">{m.professional_experience}</p>
+                </div>
+              )}
               {m.aspirations && (
-                <p className="text-xs text-slate-600 mt-3 line-clamp-2 leading-relaxed">{m.aspirations}</p>
+                <div className="mt-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Aspirations</p>
+                  <p className="text-xs text-slate-600 leading-relaxed">{m.aspirations}</p>
+                </div>
               )}
               {m.skills?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {m.skills.slice(0, 3).map(s => (
+                <div className="flex flex-wrap gap-1 mt-3">
+                  {m.skills.map(s => (
                     <span key={s} className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded-md font-medium">{s}</span>
                   ))}
-                  {m.skills.length > 3 && <span className="text-[10px] text-slate-400">+{m.skills.length - 3}</span>}
                 </div>
               )}
               <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">

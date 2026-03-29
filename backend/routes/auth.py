@@ -54,6 +54,7 @@ async def exchange_session(request: Request):
             "aspirations": "",
             "linkedin_url": "",
             "skills": [],
+            "residing_in": "",
             "onboarding_complete": False,
             "created_at": datetime.now(timezone.utc).isoformat()
         })
