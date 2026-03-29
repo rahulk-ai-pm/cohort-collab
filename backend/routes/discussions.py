@@ -11,9 +11,16 @@ router = APIRouter(prefix="/api")
 async def list_discussions(request: Request):
     await get_current_user(request)
     discussions = await db.discussions.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
-    for d in discussions:
-        count = await db.discussion_messages.count_documents({"discussion_id": d["discussion_id"]})
-        d["message_count"] = count
+    if discussions:
+        disc_ids = [d["discussion_id"] for d in discussions]
+        pipeline = [
+            {"$match": {"discussion_id": {"$in": disc_ids}}},
+            {"$group": {"_id": "$discussion_id", "count": {"$sum": 1}}}
+        ]
+        counts = await db.discussion_messages.aggregate(pipeline).to_list(200)
+        count_map = {c["_id"]: c["count"] for c in counts}
+        for d in discussions:
+            d["message_count"] = count_map.get(d["discussion_id"], 0)
     return discussions
 
 @router.post("/discussions")
