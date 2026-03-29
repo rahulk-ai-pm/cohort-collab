@@ -1,14 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { X } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const ALL_SKILLS = [
+  "Data Analysis", "Market Research", "Product Strategy", "Financial Modeling",
+  "Tech/Prototyping", "UX/Design", "Marketing/GTM", "Business Development",
+  "Operations", "Leadership", "Project Management", "Agile/Scrum",
+  "Consumer Insights", "Competitive Analysis", "Pricing Strategy",
+  "Supply Chain", "Digital Marketing", "Sales Strategy"
+];
 
 export default function OnboardingPage() {
   const { user, setUser } = useAuth();
@@ -17,14 +27,26 @@ export default function OnboardingPage() {
     professional_experience: '',
     current_role: '',
     aspirations: '',
-    linkedin_url: ''
+    linkedin_url: '',
+    skills: []
   });
   const [saving, setSaving] = useState(false);
+
+  const toggleSkill = (skill) => {
+    setForm(f => ({
+      ...f,
+      skills: f.skills.includes(skill) ? f.skills.filter(s => s !== skill) : [...f.skills, skill]
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.professional_experience || !form.current_role || !form.aspirations) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+    if (form.skills.length === 0) {
+      toast.error('Please select at least one skill');
       return;
     }
     setSaving(true);
@@ -48,7 +70,7 @@ export default function OnboardingPage() {
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Tell us about yourself
           </h1>
-          <p className="text-slate-500 mt-2">This helps your cohort mates get to know you.</p>
+          <p className="text-slate-500 mt-2">This helps your cohort mates get to know you and form better project teams.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -83,6 +105,31 @@ export default function OnboardingPage() {
                 value={form.professional_experience}
                 onChange={e => setForm(f => ({ ...f, professional_experience: e.target.value }))}
               />
+            </div>
+
+            <div>
+              <Label className="text-sm font-semibold text-slate-700">Your Skills *</Label>
+              <p className="text-xs text-slate-400 mt-1 mb-2">Select skills you bring to the table (used for team matching)</p>
+              <div className="flex flex-wrap gap-2" data-testid="onboarding-skills">
+                {ALL_SKILLS.map(skill => (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => toggleSkill(skill)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 ${
+                      form.skills.includes(skill)
+                        ? 'bg-slate-800 text-white border-slate-800'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                    }`}
+                    data-testid={`skill-${skill.toLowerCase().replace(/[\/\s]/g, '-')}`}
+                  >
+                    {skill}
+                  </button>
+                ))}
+              </div>
+              {form.skills.length > 0 && (
+                <p className="text-xs text-slate-500 mt-2">{form.skills.length} selected</p>
+              )}
             </div>
 
             <div>

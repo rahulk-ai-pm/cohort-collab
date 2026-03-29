@@ -9,15 +9,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import {
-  FolderKanban, BookOpen, BarChart3, Plus, Trash2, Upload, Users, MessageSquare, FileText, X
+  FolderKanban, BookOpen, BarChart3, Plus, Trash2, Upload, Users, MessageSquare, FileText, X,
+  Wand2, Send, Shuffle, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+const ALL_SKILLS = [
+  "Data Analysis", "Market Research", "Product Strategy", "Financial Modeling",
+  "Tech/Prototyping", "UX/Design", "Marketing/GTM", "Business Development",
+  "Operations", "Leadership", "Project Management", "Agile/Scrum",
+  "Consumer Insights", "Competitive Analysis", "Pricing Strategy",
+  "Supply Chain", "Digital Marketing", "Sales Strategy"
+];
+
 function ProjectForm({ onCreated, editData }) {
-  const [form, setForm] = useState(editData || { title: '', description: '', context: '', group_size: '', links: [] });
+  const [form, setForm] = useState(editData || { title: '', description: '', context: '', group_size: '', links: [], goals: '', skills_required: [] });
   const [linkInput, setLinkInput] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -45,6 +54,15 @@ function ProjectForm({ onCreated, editData }) {
     }
   };
 
+  const toggleSkill = (skill) => {
+    setForm(f => ({
+      ...f,
+      skills_required: f.skills_required?.includes(skill)
+        ? f.skills_required.filter(s => s !== skill)
+        : [...(f.skills_required || []), skill]
+    }));
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -56,12 +74,31 @@ function ProjectForm({ onCreated, editData }) {
         <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="mt-1 bg-slate-50 min-h-[80px]" data-testid="admin-project-description" />
       </div>
       <div>
+        <Label className="text-sm font-semibold">Project Goals</Label>
+        <Textarea value={form.goals} onChange={e => setForm(f => ({ ...f, goals: e.target.value }))} className="mt-1 bg-slate-50 min-h-[80px]" placeholder="What should the project achieve? What outcomes are expected?" data-testid="admin-project-goals" />
+      </div>
+      <div>
+        <Label className="text-sm font-semibold">Skills Required</Label>
+        <p className="text-xs text-slate-400 mt-1 mb-2">Select skills needed for this project (used for team formation)</p>
+        <div className="flex flex-wrap gap-1.5" data-testid="admin-project-skills">
+          {ALL_SKILLS.map(skill => (
+            <button key={skill} type="button" onClick={() => toggleSkill(skill)}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${
+                form.skills_required?.includes(skill) ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+              }`}
+            >{skill}</button>
+          ))}
+        </div>
+      </div>
+      <div>
         <Label className="text-sm font-semibold">Context (for chatbot)</Label>
         <Textarea value={form.context} onChange={e => setForm(f => ({ ...f, context: e.target.value }))} className="mt-1 bg-slate-50 min-h-[80px]" placeholder="Add context the AI chatbot can use to answer questions about this project..." data-testid="admin-project-context" />
       </div>
-      <div>
-        <Label className="text-sm font-semibold">Group Size</Label>
-        <Input type="number" value={form.group_size} onChange={e => setForm(f => ({ ...f, group_size: e.target.value }))} className="mt-1 bg-slate-50 w-32" data-testid="admin-project-group-size" />
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label className="text-sm font-semibold">Group Size</Label>
+          <Input type="number" value={form.group_size} onChange={e => setForm(f => ({ ...f, group_size: e.target.value }))} className="mt-1 bg-slate-50" data-testid="admin-project-group-size" />
+        </div>
       </div>
       <div>
         <Label className="text-sm font-semibold">Links</Label>
@@ -69,7 +106,7 @@ function ProjectForm({ onCreated, editData }) {
           <Input value={linkInput} onChange={e => setLinkInput(e.target.value)} placeholder="https://..." className="bg-slate-50" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addLink())} />
           <Button variant="outline" onClick={addLink} size="sm">Add</Button>
         </div>
-        {form.links.length > 0 && (
+        {form.links?.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {form.links.map((l, i) => (
               <Badge key={i} variant="secondary" className="text-xs gap-1">
@@ -135,7 +172,7 @@ function CaseStudyForm({ onCreated, editData }) {
           <Input value={linkInput} onChange={e => setLinkInput(e.target.value)} placeholder="https://..." className="bg-slate-50" onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addLink())} />
           <Button variant="outline" onClick={addLink} size="sm">Add</Button>
         </div>
-        {form.links.length > 0 && (
+        {form.links?.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {form.links.map((l, i) => (
               <Badge key={i} variant="secondary" className="text-xs gap-1">
@@ -153,6 +190,110 @@ function CaseStudyForm({ onCreated, editData }) {
   );
 }
 
+function TeamManagement({ project, onRefresh }) {
+  const [teams, setTeams] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [prefCount, setPrefCount] = useState(0);
+
+  const fetchTeams = async () => {
+    try {
+      const res = await axios.get(`${API}/admin/projects/${project.project_id}/teams`, { withCredentials: true });
+      setTeams(res.data);
+    } catch { setTeams(null); }
+  };
+
+  useEffect(() => {
+    fetchTeams();
+    axios.get(`${API}/admin/projects/${project.project_id}/preferences`, { withCredentials: true })
+      .then(res => setPrefCount(res.data.length)).catch(() => {});
+  }, [project.project_id]);
+
+  const generateTeams = async () => {
+    setGenerating(true);
+    try {
+      const res = await axios.post(`${API}/admin/projects/${project.project_id}/generate-teams`, {}, { withCredentials: true });
+      setTeams(res.data);
+      toast.success('Teams generated! Review and publish.');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Generation failed');
+    }
+    finally { setGenerating(false); }
+  };
+
+  const publishTeams = async () => {
+    if (!window.confirm('Publish these teams? All members will be notified.')) return;
+    setPublishing(true);
+    try {
+      await axios.post(`${API}/admin/projects/${project.project_id}/publish-teams`, {}, { withCredentials: true });
+      toast.success('Teams published!');
+      fetchTeams();
+    } catch { toast.error('Publish failed'); }
+    finally { setPublishing(false); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-slate-900">Team Formation</h3>
+          <p className="text-xs text-slate-500 mt-0.5">{prefCount} member preferences received</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={generateTeams} disabled={generating} variant="outline" size="sm" data-testid="generate-teams-btn">
+            <Wand2 className="w-4 h-4 mr-1.5" /> {generating ? 'Generating...' : 'Generate Teams'}
+          </Button>
+          {teams && teams.status === 'draft' && (
+            <Button onClick={publishTeams} disabled={publishing} size="sm" className="bg-emerald-600 hover:bg-emerald-700" data-testid="publish-teams-btn">
+              <Send className="w-4 h-4 mr-1.5" /> {publishing ? 'Publishing...' : 'Publish Teams'}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {teams && teams.status && (
+        <Badge className={teams.status === 'published' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}>
+          {teams.status === 'published' ? 'Published' : 'Draft - Review before publishing'}
+        </Badge>
+      )}
+
+      {teams?.teams ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {teams.teams.map((team, idx) => (
+            <div key={team.team_id} className="bg-white border border-slate-200 rounded-xl p-4" data-testid={`admin-team-${team.team_id}`}>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-sm text-slate-900">{team.team_name}</h4>
+                <Badge variant="outline" className="text-xs">{team.member_details?.length || team.members?.length} members</Badge>
+              </div>
+              <div className="space-y-2">
+                {(team.member_details || []).map(m => (
+                  <div key={m.user_id} className="flex items-center gap-2 py-1">
+                    {m.picture ? <img src={m.picture} alt="" className="w-6 h-6 rounded-full" /> :
+                      <div className="w-6 h-6 bg-slate-200 rounded-full flex items-center justify-center text-[10px] font-bold">{m.name?.[0]}</div>}
+                    <span className="text-sm text-slate-700">{m.name}</span>
+                    {m.skills?.length > 0 && (
+                      <div className="flex gap-1 ml-auto">
+                        {m.skills.slice(0, 2).map(s => <Badge key={s} variant="secondary" className="text-[9px] py-0">{s}</Badge>)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {!team.member_details && team.members?.map(uid => (
+                  <div key={uid} className="text-xs text-slate-400 py-1">{uid}</div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-sm text-slate-400">
+          No teams generated yet. Click "Generate Teams" to use AI-powered team formation.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [projects, setProjects] = useState([]);
@@ -160,7 +301,7 @@ export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState(null);
   const [projDialogOpen, setProjDialogOpen] = useState(false);
   const [csDialogOpen, setCsDialogOpen] = useState(false);
-  const [uploadingFile, setUploadingFile] = useState(null);
+  const [teamMgmtProject, setTeamMgmtProject] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -178,7 +319,6 @@ export default function AdminDashboard() {
   useEffect(() => { fetchData(); }, []);
 
   const uploadFile = async (entityType, entityId, file) => {
-    setUploadingFile(`${entityType}_${entityId}`);
     const formData = new FormData();
     formData.append('file', file);
     try {
@@ -188,7 +328,6 @@ export default function AdminDashboard() {
       });
       toast.success('File uploaded');
     } catch { toast.error('Upload failed'); }
-    finally { setUploadingFile(null); }
   };
 
   const deleteProject = async (id) => {
@@ -214,7 +353,7 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 animate-fade-in-up">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Admin Dashboard</h1>
-          <p className="text-slate-500 mt-1">Manage projects, case studies, and view analytics</p>
+          <p className="text-slate-500 mt-1">Manage projects, case studies, teams, and view analytics</p>
         </div>
 
         {/* Analytics Cards */}
@@ -256,16 +395,31 @@ export default function AdminDashboard() {
                 </DialogContent>
               </Dialog>
             </div>
+
+            {/* Team Management Dialog */}
+            <Dialog open={!!teamMgmtProject} onOpenChange={(open) => { if (!open) setTeamMgmtProject(null); }}>
+              <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+                <DialogHeader><DialogTitle>Team Formation: {teamMgmtProject?.title}</DialogTitle></DialogHeader>
+                {teamMgmtProject && <TeamManagement project={teamMgmtProject} onRefresh={fetchData} />}
+              </DialogContent>
+            </Dialog>
+
             <div className="space-y-3">
               {projects.map(p => (
                 <div key={p.project_id} className="bg-white border border-slate-200 rounded-xl p-5" data-testid={`admin-project-${p.project_id}`}>
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-slate-900">{p.title}</h3>
                       <p className="text-sm text-slate-500 mt-1 line-clamp-2">{p.description}</p>
-                      {p.group_size && <Badge variant="outline" className="mt-2 text-xs"><Users className="w-3 h-3 mr-1" /> {p.group_size} per team</Badge>}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {p.group_size && <Badge variant="outline" className="text-xs"><Users className="w-3 h-3 mr-1" /> {p.group_size} per team</Badge>}
+                        {p.skills_required?.map(s => <Badge key={s} className="bg-blue-50 text-blue-700 border-blue-200 text-[10px]">{s}</Badge>)}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0 ml-4">
+                      <button onClick={() => setTeamMgmtProject(p)} className="p-2 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-blue-600 transition-colors" title="Manage Teams" data-testid={`manage-teams-${p.project_id}`}>
+                        <Users className="w-4 h-4" />
+                      </button>
                       <label className="cursor-pointer">
                         <input type="file" className="hidden" onChange={e => e.target.files?.[0] && uploadFile('projects', p.project_id, e.target.files[0])} />
                         <div className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
@@ -305,7 +459,7 @@ export default function AdminDashboard() {
                       <h3 className="font-semibold text-slate-900">{cs.title}</h3>
                       <p className="text-sm text-slate-500 mt-1 line-clamp-2">{cs.description}</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <label className="cursor-pointer">
                         <input type="file" className="hidden" onChange={e => e.target.files?.[0] && uploadFile('case-studies', cs.case_study_id, e.target.files[0])} />
                         <div className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
