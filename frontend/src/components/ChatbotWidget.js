@@ -67,7 +67,7 @@ export default function ChatbotWidget() {
         <button
           data-testid="chatbot-fab"
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-slate-800 hover:bg-slate-900 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105 hover:shadow-xl"
+          className="fixed bottom-20 right-6 z-50 w-14 h-14 bg-slate-800 hover:bg-slate-900 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105 hover:shadow-xl"
         >
           <MessageCircle className="w-6 h-6" />
         </button>
@@ -75,7 +75,7 @@ export default function ChatbotWidget() {
 
       {/* Chat Window */}
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[520px] bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up"
+        <div className="fixed bottom-20 right-6 z-50 w-[380px] h-[520px] bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up"
           data-testid="chatbot-window"
         >
           {/* Header */}
