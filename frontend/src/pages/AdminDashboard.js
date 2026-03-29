@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import {
   FolderKanban, BookOpen, BarChart3, Plus, Trash2, Upload, Users, MessageSquare, FileText, X,
-  Wand2, Send, Shuffle, Eye
+  Wand2, Send, Shuffle, Eye, ShieldBan, UserX, Unlock, Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -302,17 +302,24 @@ export default function AdminDashboard() {
   const [projDialogOpen, setProjDialogOpen] = useState(false);
   const [csDialogOpen, setCsDialogOpen] = useState(false);
   const [teamMgmtProject, setTeamMgmtProject] = useState(null);
+  const [discussions, setDiscussions] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [memberSearch, setMemberSearch] = useState('');
 
   const fetchData = async () => {
     try {
-      const [projRes, csRes, analyticsRes] = await Promise.all([
+      const [projRes, csRes, analyticsRes, discRes, memRes] = await Promise.all([
         axios.get(`${API}/projects`, { withCredentials: true }),
         axios.get(`${API}/case-studies`, { withCredentials: true }),
         axios.get(`${API}/admin/analytics`, { withCredentials: true }),
+        axios.get(`${API}/discussions`, { withCredentials: true }),
+        axios.get(`${API}/admin/members`, { withCredentials: true }),
       ]);
       setProjects(projRes.data);
       setCaseStudies(csRes.data);
       setAnalytics(analyticsRes.data);
+      setDiscussions(discRes.data);
+      setMembers(memRes.data);
     } catch { /* ignore */ }
   };
 
@@ -348,6 +355,47 @@ export default function AdminDashboard() {
     } catch { toast.error('Delete failed'); }
   };
 
+  const deleteDiscussion = async (id) => {
+    if (!window.confirm('Delete this discussion and all its messages?')) return;
+    try {
+      await axios.delete(`${API}/admin/discussions/${id}`, { withCredentials: true });
+      setDiscussions(d => d.filter(x => x.discussion_id !== id));
+      toast.success('Discussion deleted');
+    } catch { toast.error('Delete failed'); }
+  };
+
+  const removeMember = async (userId, name) => {
+    if (!window.confirm(`Remove ${name}? This will delete their account and all associated data permanently.`)) return;
+    try {
+      await axios.delete(`${API}/admin/members/${userId}`, { withCredentials: true });
+      setMembers(m => m.filter(x => x.user_id !== userId));
+      toast.success(`${name} removed`);
+    } catch (err) { toast.error(err.response?.data?.detail || 'Remove failed'); }
+  };
+
+  const blockMember = async (userId, name) => {
+    if (!window.confirm(`Block ${name}? They will be logged out and unable to sign in again.`)) return;
+    try {
+      await axios.post(`${API}/admin/members/${userId}/block`, {}, { withCredentials: true });
+      setMembers(m => m.map(x => x.user_id === userId ? { ...x, is_blocked: true } : x));
+      toast.success(`${name} blocked`);
+    } catch (err) { toast.error(err.response?.data?.detail || 'Block failed'); }
+  };
+
+  const unblockMember = async (userId, name) => {
+    try {
+      await axios.delete(`${API}/admin/members/${userId}/block`, { withCredentials: true });
+      setMembers(m => m.map(x => x.user_id === userId ? { ...x, is_blocked: false } : x));
+      toast.success(`${name} unblocked`);
+    } catch { toast.error('Unblock failed'); }
+  };
+
+  const filteredMembers = members.filter(m =>
+    m.name?.toLowerCase().includes(memberSearch.toLowerCase()) ||
+    m.email?.toLowerCase().includes(memberSearch.toLowerCase()) ||
+    m.current_role?.toLowerCase().includes(memberSearch.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-slate-50" data-testid="admin-dashboard">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -375,10 +423,12 @@ export default function AdminDashboard() {
         )}
 
         <Tabs defaultValue="projects" className="animate-fade-in-up stagger-1">
-          <TabsList className="bg-white border border-slate-200">
+          <TabsList className="bg-white border border-slate-200 flex-wrap h-auto gap-0">
             <TabsTrigger value="projects"><FolderKanban className="w-4 h-4 mr-1.5" /> Projects</TabsTrigger>
             <TabsTrigger value="case-studies"><BookOpen className="w-4 h-4 mr-1.5" /> Case Studies</TabsTrigger>
-            <TabsTrigger value="analytics"><BarChart3 className="w-4 h-4 mr-1.5" /> Member Activity</TabsTrigger>
+            <TabsTrigger value="discussions" data-testid="admin-tab-discussions"><MessageSquare className="w-4 h-4 mr-1.5" /> Discussions</TabsTrigger>
+            <TabsTrigger value="members" data-testid="admin-tab-members"><Users className="w-4 h-4 mr-1.5" /> Members</TabsTrigger>
+            <TabsTrigger value="analytics"><BarChart3 className="w-4 h-4 mr-1.5" /> Activity</TabsTrigger>
           </TabsList>
 
           <TabsContent value="projects" className="mt-4">
@@ -474,6 +524,132 @@ export default function AdminDashboard() {
                 </div>
               ))}
               {caseStudies.length === 0 && <div className="text-center py-12 text-sm text-slate-400">No case studies yet</div>}
+            </div>
+          </TabsContent>
+
+          {/* Discussions Tab */}
+          <TabsContent value="discussions" className="mt-4">
+            <div className="space-y-3">
+              {discussions.map(d => (
+                <div key={d.discussion_id} className="bg-white border border-slate-200 rounded-xl p-5" data-testid={`admin-disc-${d.discussion_id}`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-slate-900">{d.title}</h3>
+                      <p className="text-sm text-slate-500 mt-1 line-clamp-2">{d.content}</p>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
+                        <span>By {d.author_name}</span>
+                        <span>{d.message_count || 0} replies</span>
+                        <span>{new Date(d.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deleteDiscussion(d.discussion_id)}
+                      className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors shrink-0 ml-4"
+                      title="Delete discussion"
+                      data-testid={`delete-disc-${d.discussion_id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {discussions.length === 0 && <div className="text-center py-12 text-sm text-slate-400">No discussions yet</div>}
+            </div>
+          </TabsContent>
+
+          {/* Members Tab */}
+          <TabsContent value="members" className="mt-4">
+            <div className="mb-4">
+              <div className="relative max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  value={memberSearch}
+                  onChange={e => setMemberSearch(e.target.value)}
+                  placeholder="Search members..."
+                  className="pl-10 bg-white border-slate-200"
+                  data-testid="admin-member-search"
+                />
+              </div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+              <ScrollArea className="max-h-[600px]">
+                <table className="w-full" data-testid="admin-members-table">
+                  <thead className="bg-slate-50 sticky top-0">
+                    <tr>
+                      <th className="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Member</th>
+                      <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Role</th>
+                      <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Status</th>
+                      <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Joined</th>
+                      <th className="text-right px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {filteredMembers.map(m => (
+                      <tr key={m.user_id} className={`hover:bg-slate-50/50 ${m.is_blocked ? 'opacity-60' : ''}`}>
+                        <td className="px-6 py-3">
+                          <div className="flex items-center gap-3">
+                            {m.picture ? <img src={m.picture} alt="" className="w-8 h-8 rounded-full" /> :
+                              <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-bold">{m.name?.[0]}</div>}
+                            <div>
+                              <p className="text-sm font-medium text-slate-900">{m.name}</p>
+                              <p className="text-xs text-slate-400">{m.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600">{m.current_role || '-'}</td>
+                        <td className="text-center px-4 py-3">
+                          {m.is_blocked ? (
+                            <Badge className="bg-red-50 text-red-700 border-red-200 text-xs">Blocked</Badge>
+                          ) : m.onboarding_complete ? (
+                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">Active</Badge>
+                          ) : (
+                            <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs">Pending</Badge>
+                          )}
+                        </td>
+                        <td className="text-center px-4 py-3 text-xs text-slate-400 font-mono">
+                          {new Date(m.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="text-right px-6 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            {m.is_blocked ? (
+                              <button
+                                onClick={() => unblockMember(m.user_id, m.name)}
+                                className="p-2 hover:bg-emerald-50 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors"
+                                title="Unblock member"
+                                data-testid={`unblock-member-${m.user_id}`}
+                              >
+                                <Unlock className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => blockMember(m.user_id, m.name)}
+                                className="p-2 hover:bg-amber-50 rounded-lg text-slate-400 hover:text-amber-600 transition-colors"
+                                title="Block member"
+                                data-testid={`block-member-${m.user_id}`}
+                              >
+                                <ShieldBan className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => removeMember(m.user_id, m.name)}
+                              className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
+                              title="Remove member permanently"
+                              data-testid={`remove-member-${m.user_id}`}
+                            >
+                              <UserX className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredMembers.length === 0 && (
+                  <div className="text-center py-12 text-sm text-slate-400">
+                    {memberSearch ? 'No members match your search' : 'No members yet'}
+                  </div>
+                )}
+              </ScrollArea>
             </div>
           </TabsContent>
 

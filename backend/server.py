@@ -218,6 +218,11 @@ async def exchange_session(request: Request):
     session_token = data["session_token"]
     role = "admin" if email == ADMIN_EMAIL else "member"
 
+    # Check if email is blocked
+    blocked = await db.blocked_emails.find_one({"email": email})
+    if blocked:
+        raise HTTPException(status_code=403, detail="Your account has been blocked. Contact the admin.")
+
     existing = await db.users.find_one({"email": email}, {"_id": 0})
     if existing:
         await db.users.update_one({"email": email}, {"$set": {"name": name, "picture": picture}})
@@ -1100,6 +1105,80 @@ async def delete_case_study(cs_id: str, request: Request):
     await db.files.update_many({"entity_type": "case_study", "entity_id": cs_id}, {"$set": {"is_deleted": True}})
     await db.case_study_messages.delete_many({"case_study_id": cs_id})
     return {"message": "Case study deleted"}
+
+# ─── Admin: Discussion Management ───
+@api_router.delete("/admin/discussions/{disc_id}")
+async def admin_delete_discussion(disc_id: str, request: Request):
+    await require_admin(request)
+    result = await db.discussions.delete_one({"discussion_id": disc_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Discussion not found")
+    await db.discussion_messages.delete_many({"discussion_id": disc_id})
+    return {"message": "Discussion deleted"}
+
+# ─── Admin: Member Management ───
+@api_router.get("/admin/members")
+async def admin_list_members(request: Request):
+    await require_admin(request)
+    members = await db.users.find({"role": "member"}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    blocked_emails = await db.blocked_emails.find({}, {"_id": 0}).to_list(200)
+    blocked_set = {b["email"] for b in blocked_emails}
+    for m in members:
+        m["is_blocked"] = m.get("email", "") in blocked_set
+    return members
+
+@api_router.delete("/admin/members/{user_id}")
+async def admin_remove_member(user_id: str, request: Request):
+    await require_admin(request)
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Member not found")
+    if user.get("role") == "admin":
+        raise HTTPException(status_code=400, detail="Cannot remove admin")
+    # Delete user and all their data
+    await db.users.delete_one({"user_id": user_id})
+    await db.user_sessions.delete_many({"user_id": user_id})
+    await db.chat_messages.delete_many({"user_id": user_id})
+    await db.chatbot_analytics.delete_many({"user_id": user_id})
+    await db.notifications.delete_many({"user_id": user_id})
+    await db.team_preferences.delete_many({"user_id": user_id})
+    return {"message": f"Member {user.get('name', user_id)} removed"}
+
+@api_router.post("/admin/members/{user_id}/block")
+async def admin_block_member(user_id: str, request: Request):
+    await require_admin(request)
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Member not found")
+    if user.get("role") == "admin":
+        raise HTTPException(status_code=400, detail="Cannot block admin")
+    email = user.get("email", "")
+    if email:
+        await db.blocked_emails.update_one(
+            {"email": email},
+            {"$set": {"email": email, "user_id": user_id, "name": user.get("name", ""), "blocked_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True
+        )
+    # Kill active sessions
+    await db.user_sessions.delete_many({"user_id": user_id})
+    return {"message": f"Member {user.get('name', user_id)} blocked"}
+
+@api_router.delete("/admin/members/{user_id}/block")
+async def admin_unblock_member(user_id: str, request: Request):
+    await require_admin(request)
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Member not found")
+    email = user.get("email", "")
+    if email:
+        await db.blocked_emails.delete_one({"email": email})
+    return {"message": f"Member {user.get('name', user_id)} unblocked"}
+
+@api_router.get("/admin/blocked")
+async def admin_list_blocked(request: Request):
+    await require_admin(request)
+    blocked = await db.blocked_emails.find({}, {"_id": 0}).to_list(200)
+    return blocked
 
 # ─── Root Health Endpoint ───
 @app.get("/api/")
