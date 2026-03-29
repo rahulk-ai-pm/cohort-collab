@@ -7,7 +7,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
-STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+STORAGE_URL = os.environ.get('STORAGE_URL', 'https://integrations.emergentagent.com/objstore/api/v1/storage')
 APP_NAME = os.environ.get('APP_NAME', 'iimk-apm06')
 SESSION_EXPIRY_DAYS = 7
 

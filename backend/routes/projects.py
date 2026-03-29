@@ -106,11 +106,9 @@ async def get_my_team(project_id: str, request: Request):
         return {"status": "not_published"}
     for team in team_set.get("teams", []):
         if user["user_id"] in team.get("members", []):
-            member_details = []
-            for uid in team["members"]:
-                m = await db.users.find_one({"user_id": uid}, {"_id": 0})
-                if m:
-                    member_details.append(m)
+            users = await db.users.find({"user_id": {"$in": team["members"]}}, {"_id": 0}).to_list(100)
+            user_map = {u["user_id"]: u for u in users}
+            member_details = [user_map[uid] for uid in team["members"] if uid in user_map]
             return {"status": "published", "team": {**team, "member_details": member_details}}
     return {"status": "not_assigned"}
 
@@ -212,13 +210,16 @@ async def admin_get_teams(project_id: str, request: Request):
     )
     if not team_set:
         return None
+    all_member_ids = []
     for team in team_set.get("teams", []):
-        member_details = []
-        for uid in team.get("members", []):
-            m = await db.users.find_one({"user_id": uid}, {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "current_role": 1, "skills": 1})
-            if m:
-                member_details.append(m)
-        team["member_details"] = member_details
+        all_member_ids.extend(team.get("members", []))
+    users = await db.users.find(
+        {"user_id": {"$in": all_member_ids}},
+        {"_id": 0, "user_id": 1, "name": 1, "picture": 1, "current_role": 1, "skills": 1}
+    ).to_list(200)
+    user_map = {u["user_id"]: u for u in users}
+    for team in team_set.get("teams", []):
+        team["member_details"] = [user_map[uid] for uid in team.get("members", []) if uid in user_map]
     return team_set
 
 @router.post("/admin/projects/{project_id}/generate-teams")
