@@ -30,9 +30,9 @@ Build a cohort learning app for the IIM Kozhikode Advanced Product Management (B
 
 ## What's Been Implemented (March 29, 2026)
 - [x] Google OAuth authentication flow
-- [x] Profile onboarding
+- [x] Profile onboarding (with skills selection)
 - [x] Member dashboard with stats and notifications
-- [x] Cohort directory with search
+- [x] Cohort directory with search (shows skills badges)
 - [x] Discussion forum (create, reply)
 - [x] Projects listing and detail with peer recommendations
 - [x] Case studies with cohort-wide chat
@@ -41,10 +41,18 @@ Build a cohort learning app for the IIM Kozhikode Advanced Product Management (B
 - [x] File upload via Emergent Object Storage
 - [x] Notification system
 - [x] Responsive design
+- [x] **Team Formation Workflow** (March 29, 2026)
+  - Admin sets project goals + required skills
+  - Members select skills during onboarding
+  - Members submit team preferences (preferred teammates, skills offered/wanted)
+  - AI-powered team generation via Gemini 3 Flash (respects preferences, balances skills)
+  - Admin reviews draft teams, can swap members
+  - Admin publishes teams → all members notified
+  - Members see their assigned team under project detail
 
 ## Testing Results
-- Backend: 100% (20/20 tests passed)
-- Frontend: 95% (17/18 - chatbot overlay fixed)
+- Iteration 1: Backend 100% (20/20), Frontend 95%
+- Iteration 2 (Team Formation): Backend 100% (13/13), Frontend 100%
 
 ## Prioritized Backlog
 
