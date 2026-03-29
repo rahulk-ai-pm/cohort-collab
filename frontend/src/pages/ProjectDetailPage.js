@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Users, FileText, ExternalLink, Linkedin, Sparkles, Heart, CheckCircle, Target, Download } from 'lucide-react';
+import { ArrowLeft, Users, FileText, ExternalLink, Linkedin, Sparkles, Heart, CheckCircle, Target, Download, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import SafeHTML from '@/components/SafeHTML';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -205,6 +206,58 @@ function MyTeamPanel({ projectId }) {
   );
 }
 
+function FileWithSummary({ file, apiBase }) {
+  const [showSummary, setShowSummary] = useState(false);
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden" data-testid={`file-${file.file_id}`}>
+      <div className="p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <FileText className="w-5 h-5 text-slate-400" />
+          <div>
+            <p className="text-sm font-medium text-slate-900">{file.original_filename}</p>
+            <p className="text-xs text-slate-400 font-mono">{(file.size / 1024).toFixed(1)} KB</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {file.summary && (
+            <button
+              onClick={() => setShowSummary(!showSummary)}
+              className="p-2 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
+              data-testid={`toggle-summary-${file.file_id}`}
+              title="View summary"
+            >
+              {showSummary ? <ChevronUp className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
+            </button>
+          )}
+          <a
+            href={`${apiBase}/files/${file.storage_path}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
+            data-testid={`download-${file.file_id}`}
+            title="Download file"
+          >
+            <Download className="w-4 h-4" />
+          </a>
+        </div>
+      </div>
+      {showSummary && file.summary && (
+        <div className="px-4 pb-4 pt-0">
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-2">AI Summary</p>
+            <SafeHTML html={file.summary.replace(/\n/g, '<br/>')} className="text-sm text-blue-900" />
+          </div>
+        </div>
+      )}
+      {!file.summary && (
+        <div className="px-4 pb-3">
+          <p className="text-[11px] text-slate-400">No summary available yet</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const [project, setProject] = useState(null);
@@ -326,27 +379,9 @@ export default function ProjectDetailPage() {
           </TabsContent>
 
           <TabsContent value="files" className="mt-4">
-            <div className="space-y-2">
+            <div className="space-y-3">
               {project.files?.map(f => (
-                <div key={f.file_id} className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between" data-testid={`file-${f.file_id}`}>
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-slate-400" />
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{f.original_filename}</p>
-                      <p className="text-xs text-slate-400 font-mono">{(f.size / 1024).toFixed(1)} KB</p>
-                    </div>
-                  </div>
-                  <a
-                    href={`${API}/files/${f.storage_path}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
-                    data-testid={`download-${f.file_id}`}
-                    title="Download file"
-                  >
-                    <Download className="w-4 h-4" />
-                  </a>
-                </div>
+                <FileWithSummary key={f.file_id} file={f} apiBase={API} />
               ))}
               {(!project.files || project.files.length === 0) && (
                 <div className="text-center py-8 text-sm text-slate-400">No files attached</div>

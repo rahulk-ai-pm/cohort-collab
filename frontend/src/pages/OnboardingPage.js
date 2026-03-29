@@ -109,7 +109,7 @@ export default function OnboardingPage() {
 
             <div>
               <Label className="text-sm font-semibold text-slate-700">Your Skills *</Label>
-              <p className="text-xs text-slate-400 mt-1 mb-2">Select skills you bring to the table (used for team matching)</p>
+              <p className="text-xs text-slate-400 mt-1 mb-2">Select skills or type your own</p>
               <div className="flex flex-wrap gap-2" data-testid="onboarding-skills">
                 {ALL_SKILLS.map(skill => (
                   <button
@@ -126,6 +126,36 @@ export default function OnboardingPage() {
                     {skill}
                   </button>
                 ))}
+              </div>
+              {/* Custom skills that aren't in the predefined list */}
+              {form.skills.filter(s => !ALL_SKILLS.includes(s)).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {form.skills.filter(s => !ALL_SKILLS.includes(s)).map(s => (
+                    <span key={s} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 text-white rounded-lg text-xs font-medium">
+                      {s}
+                      <button type="button" onClick={() => toggleSkill(s)} className="hover:text-slate-300">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2 mt-2">
+                <Input
+                  data-testid="custom-skill-input"
+                  placeholder="Type a custom skill and press Enter..."
+                  className="bg-slate-50 border-slate-200 text-sm"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const val = e.target.value.trim();
+                      if (val && !form.skills.includes(val)) {
+                        setForm(f => ({ ...f, skills: [...f.skills, val] }));
+                        e.target.value = '';
+                      }
+                    }
+                  }}
+                />
               </div>
               {form.skills.length > 0 && (
                 <p className="text-xs text-slate-500 mt-2">{form.skills.length} selected</p>

@@ -2,13 +2,19 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ArrowLeft, Send, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import RichTextEditor from '@/components/RichTextEditor';
+import SafeHTML from '@/components/SafeHTML';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+function stripHtml(html) {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+}
 
 export default function DiscussionDetailPage() {
   const { id } = useParams();
@@ -41,10 +47,10 @@ export default function DiscussionDetailPage() {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!newMsg.trim() || sending) return;
+    if (!stripHtml(newMsg) || sending) return;
     setSending(true);
     try {
-      const res = await axios.post(`${API}/discussions/${id}/messages`, { content: newMsg.trim() }, { withCredentials: true });
+      const res = await axios.post(`${API}/discussions/${id}/messages`, { content: newMsg }, { withCredentials: true });
       setMessages(prev => [...prev, res.data]);
       setNewMsg('');
     } catch { /* ignore */ }
@@ -57,9 +63,9 @@ export default function DiscussionDetailPage() {
   };
 
   const saveEdit = async (msgId) => {
-    if (!editText.trim()) return;
+    if (!stripHtml(editText)) return;
     try {
-      const res = await axios.put(`${API}/discussions/${id}/messages/${msgId}`, { content: editText.trim() }, { withCredentials: true });
+      const res = await axios.put(`${API}/discussions/${id}/messages/${msgId}`, { content: editText }, { withCredentials: true });
       setMessages(prev => prev.map(m => m.message_id === msgId ? res.data : m));
       setEditingMsg(null);
       setEditText('');
@@ -91,7 +97,9 @@ export default function DiscussionDetailPage() {
 
         <div className="bg-white border border-slate-200 rounded-xl p-6 mb-6 animate-fade-in-up">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{discussion.title}</h1>
-          <p className="text-sm text-slate-600 mt-2 leading-relaxed">{discussion.content}</p>
+          <div className="mt-3">
+            <SafeHTML html={discussion.content} />
+          </div>
           <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-100">
             {discussion.author_picture && <img src={discussion.author_picture} alt="" className="w-7 h-7 rounded-full" />}
             <span className="text-xs text-slate-500">{discussion.author_name} &middot; {new Date(discussion.created_at).toLocaleDateString()}</span>
@@ -137,11 +145,10 @@ export default function DiscussionDetailPage() {
               </div>
               {editingMsg === m.message_id ? (
                 <div className="pl-9 space-y-2">
-                  <Textarea
+                  <RichTextEditor
                     value={editText}
-                    onChange={e => setEditText(e.target.value)}
-                    className="bg-slate-50 border-slate-200 min-h-[60px] text-sm"
-                    data-testid={`edit-msg-textarea-${m.message_id}`}
+                    onChange={setEditText}
+                    placeholder="Edit your message..."
                   />
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => saveEdit(m.message_id)} className="bg-slate-800 hover:bg-slate-900 text-xs" data-testid={`save-msg-edit-${m.message_id}`}>Save</Button>
@@ -149,7 +156,9 @@ export default function DiscussionDetailPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-slate-700 leading-relaxed pl-9">{m.content}</p>
+                <div className="pl-9">
+                  <SafeHTML html={m.content} />
+                </div>
               )}
             </div>
           ))}
@@ -160,22 +169,19 @@ export default function DiscussionDetailPage() {
         </div>
 
         <div className="sticky bottom-0 bg-slate-50 pt-4 pb-2">
-          <div className="flex gap-3">
-            <Textarea
-              data-testid="discussion-reply-input"
-              value={newMsg}
-              onChange={e => setNewMsg(e.target.value)}
-              placeholder="Write a reply..."
-              className="bg-white border-slate-200 min-h-[80px] flex-1"
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-            />
+          <RichTextEditor
+            value={newMsg}
+            onChange={setNewMsg}
+            placeholder="Write a reply..."
+          />
+          <div className="flex justify-end mt-3">
             <Button
               data-testid="discussion-reply-send"
               onClick={sendMessage}
-              disabled={sending || !newMsg.trim()}
-              className="bg-slate-800 hover:bg-slate-900 self-end h-10 w-10 p-0"
+              disabled={sending || !stripHtml(newMsg)}
+              className="bg-slate-800 hover:bg-slate-900"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4 mr-2" /> {sending ? 'Sending...' : 'Reply'}
             </Button>
           </div>
         </div>

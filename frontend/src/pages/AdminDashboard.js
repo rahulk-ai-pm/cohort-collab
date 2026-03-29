@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import AdminAnalytics from '@/components/AdminAnalytics';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -404,17 +405,17 @@ export default function AdminDashboard() {
           <p className="text-slate-500 mt-1">Manage projects, case studies, teams, and view analytics</p>
         </div>
 
-        {/* Analytics Cards */}
+        {/* Quick Stats Row */}
         {analytics && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 animate-fade-in-up">
             {[
               { label: 'Members', value: analytics.total_members, sub: `${analytics.onboarded_members} onboarded` },
               { label: 'Chatbot Queries', value: analytics.total_chatbot_queries },
               { label: 'Discussions', value: analytics.total_discussions, sub: `${analytics.total_discussion_messages} messages` },
-              { label: 'Content', value: analytics.total_projects + analytics.total_case_studies, sub: `${analytics.total_projects} proj + ${analytics.total_case_studies} CS` },
+              { label: 'Engagement', value: `${analytics.engagement_rate || 0}%`, sub: `${analytics.active_members || 0} active members` },
             ].map((s, i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-xl p-5">
-                <p className="text-3xl font-bold text-slate-900 font-mono">{s.value}</p>
+              <div key={i} className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-md transition-shadow">
+                <p className="text-3xl font-bold text-slate-900 font-mono tracking-tight">{s.value}</p>
                 <p className="text-sm font-semibold text-slate-700 mt-1">{s.label}</p>
                 {s.sub && <p className="text-xs text-slate-400 mt-0.5">{s.sub}</p>}
               </div>
@@ -654,45 +655,7 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-4">
-            {analytics ? (
-              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100">
-                  <h3 className="font-semibold text-slate-900">Member Activity</h3>
-                </div>
-                <ScrollArea className="max-h-[500px]">
-                  <table className="w-full" data-testid="admin-activity-table">
-                    <thead className="bg-slate-50 sticky top-0">
-                      <tr>
-                        <th className="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Member</th>
-                        <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Chatbot</th>
-                        <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Discussions</th>
-                        <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Case Study</th>
-                        <th className="text-center px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {analytics.member_activity.map(m => (
-                        <tr key={m.user_id} className="hover:bg-slate-50/50">
-                          <td className="px-6 py-3">
-                            <p className="text-sm font-medium text-slate-900">{m.name}</p>
-                            <p className="text-xs text-slate-400">{m.email}</p>
-                          </td>
-                          <td className="text-center px-4 py-3 font-mono text-sm">{m.chatbot_queries}</td>
-                          <td className="text-center px-4 py-3 font-mono text-sm">{m.discussion_messages}</td>
-                          <td className="text-center px-4 py-3 font-mono text-sm">{m.case_study_messages}</td>
-                          <td className="text-center px-4 py-3 font-mono text-sm font-bold">{m.total_activity}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {analytics.member_activity.length === 0 && (
-                    <div className="text-center py-12 text-sm text-slate-400">No member activity yet</div>
-                  )}
-                </ScrollArea>
-              </div>
-            ) : (
-              <div className="text-center py-12 text-sm text-slate-400">Loading analytics...</div>
-            )}
+            <AdminAnalytics analytics={analytics} />
           </TabsContent>
         </Tabs>
       </div>

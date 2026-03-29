@@ -27,3 +27,38 @@
   top: -2px;
   right: -2px;
 }
+
+/* Rich Text Editor */
+.rich-editor-wrapper .ql-toolbar {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.75rem 0.75rem 0 0 !important;
+  background: #f8fafc;
+}
+.rich-editor-wrapper .ql-container {
+  border: 1px solid #e2e8f0 !important;
+  border-top: none !important;
+  border-radius: 0 0 0.75rem 0.75rem !important;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+}
+.rich-editor-wrapper .ql-editor {
+  min-height: 100px;
+}
+.rich-editor-wrapper .ql-editor.ql-blank::before {
+  color: #94a3b8;
+  font-style: normal;
+}
+
+/* Prose styling for rendered HTML */
+.prose h1 { font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0; }
+.prose h2 { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0; }
+.prose h3 { font-size: 1rem; font-weight: 600; margin: 0.5rem 0; }
+.prose p { margin: 0.25rem 0; }
+.prose ul, .prose ol { margin: 0.25rem 0; padding-left: 1.5rem; }
+.prose li { margin: 0.125rem 0; }
+.prose blockquote { border-left: 3px solid #e2e8f0; padding-left: 0.75rem; margin: 0.5rem 0; color: #64748b; }
+.prose pre { background: #f1f5f9; padding: 0.5rem; border-radius: 0.375rem; margin: 0.5rem 0; overflow-x: auto; }
+.prose code { background: #f1f5f9; padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-size: 0.85em; }
+.prose a { color: #2563eb; text-decoration: underline; }
+.prose strong { font-weight: 600; }
+.prose em { font-style: italic; }

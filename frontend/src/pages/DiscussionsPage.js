@@ -3,24 +3,30 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MessageSquare, Plus, Clock, User, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import RichTextEditor from '@/components/RichTextEditor';
+import SafeHTML from '@/components/SafeHTML';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+function stripHtml(html) {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+}
+
 export default function DiscussionsPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [discussions, setDiscussions] = useState([]);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [creating, setCreating] = useState(false);
   const [editingDisc, setEditingDisc] = useState(null);
+  const [editContent, setEditContent] = useState('');
 
   useEffect(() => {
     axios.get(`${API}/discussions`, { withCredentials: true })
@@ -29,7 +35,7 @@ export default function DiscussionsPage() {
   }, []);
 
   const createDiscussion = async () => {
-    if (!title.trim() || !content.trim()) { toast.error('Fill in all fields'); return; }
+    if (!title.trim() || !stripHtml(content)) { toast.error('Fill in all fields'); return; }
     setCreating(true);
     try {
       const res = await axios.post(`${API}/discussions`, { title, content }, { withCredentials: true });
@@ -43,13 +49,14 @@ export default function DiscussionsPage() {
   };
 
   const updateDiscussion = async () => {
-    if (!editingDisc || !editingDisc.title.trim() || !editingDisc.content.trim()) { toast.error('Fill in all fields'); return; }
+    if (!editingDisc || !editingDisc.title.trim() || !stripHtml(editContent)) { toast.error('Fill in all fields'); return; }
     try {
       const res = await axios.put(`${API}/discussions/${editingDisc.discussion_id}`, {
-        title: editingDisc.title, content: editingDisc.content
+        title: editingDisc.title, content: editContent
       }, { withCredentials: true });
       setDiscussions(prev => prev.map(d => d.discussion_id === editingDisc.discussion_id ? { ...d, ...res.data } : d));
       setEditingDisc(null);
+      setEditContent('');
       toast.success('Discussion updated');
     } catch { toast.error('Failed to update'); }
   };
@@ -79,11 +86,15 @@ export default function DiscussionsPage() {
                 <Plus className="w-4 h-4 mr-2" /> New Topic
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
               <DialogHeader><DialogTitle>Start a Discussion</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
                 <Input data-testid="discussion-title-input" placeholder="Discussion topic..." value={title} onChange={e => setTitle(e.target.value)} className="bg-slate-50" />
-                <Textarea data-testid="discussion-content-input" placeholder="What would you like to discuss?" value={content} onChange={e => setContent(e.target.value)} className="bg-slate-50 min-h-[120px]" />
+                <RichTextEditor
+                  value={content}
+                  onChange={setContent}
+                  placeholder="What would you like to discuss?"
+                />
                 <Button data-testid="discussion-submit-btn" onClick={createDiscussion} disabled={creating} className="w-full bg-slate-800 hover:bg-slate-900">
                   {creating ? 'Creating...' : 'Post Discussion'}
                 </Button>
@@ -93,13 +104,17 @@ export default function DiscussionsPage() {
         </div>
 
         {/* Edit Dialog */}
-        <Dialog open={!!editingDisc} onOpenChange={(open) => { if (!open) setEditingDisc(null); }}>
-          <DialogContent className="sm:max-w-lg">
+        <Dialog open={!!editingDisc} onOpenChange={(open) => { if (!open) { setEditingDisc(null); setEditContent(''); } }}>
+          <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Edit Discussion</DialogTitle></DialogHeader>
             {editingDisc && (
               <div className="space-y-4 pt-2">
                 <Input value={editingDisc.title} onChange={e => setEditingDisc(d => ({ ...d, title: e.target.value }))} className="bg-slate-50" data-testid="edit-disc-title" />
-                <Textarea value={editingDisc.content} onChange={e => setEditingDisc(d => ({ ...d, content: e.target.value }))} className="bg-slate-50 min-h-[120px]" data-testid="edit-disc-content" />
+                <RichTextEditor
+                  value={editContent}
+                  onChange={setEditContent}
+                  placeholder="Edit your discussion..."
+                />
                 <Button onClick={updateDiscussion} className="w-full bg-slate-800 hover:bg-slate-900" data-testid="edit-disc-save">Save Changes</Button>
               </div>
             )}
@@ -116,7 +131,9 @@ export default function DiscussionsPage() {
               <div className="flex items-start justify-between">
                 <Link to={`/discussions/${d.discussion_id}`} className="flex-1 min-w-0">
                   <h3 className="font-semibold text-slate-900">{d.title}</h3>
-                  <p className="text-sm text-slate-600 mt-1 line-clamp-2">{d.content}</p>
+                  <div className="text-sm text-slate-600 mt-1 line-clamp-2">
+                    <SafeHTML html={d.content} />
+                  </div>
                   <div className="flex items-center gap-4 mt-3 text-xs text-slate-400">
                     <span className="flex items-center gap-1"><User className="w-3 h-3" /> {d.author_name}</span>
                     <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" /> {d.message_count || 0} replies</span>
@@ -132,7 +149,7 @@ export default function DiscussionsPage() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setEditingDisc({ ...d })} className="cursor-pointer" data-testid={`edit-disc-${d.discussion_id}`}>
+                      <DropdownMenuItem onClick={() => { setEditingDisc({ ...d }); setEditContent(d.content); }} className="cursor-pointer" data-testid={`edit-disc-${d.discussion_id}`}>
                         <Pencil className="w-4 h-4 mr-2" /> Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => deleteDiscussion(d.discussion_id)} className="text-red-600 cursor-pointer" data-testid={`delete-disc-${d.discussion_id}`}>

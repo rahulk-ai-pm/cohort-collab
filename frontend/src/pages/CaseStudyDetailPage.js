@@ -4,10 +4,53 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Send, FileText, ExternalLink, MessageSquare, Info, Download } from 'lucide-react';
+import { ArrowLeft, Send, FileText, ExternalLink, MessageSquare, Info, Download, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import SafeHTML from '@/components/SafeHTML';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+function CsFileWithSummary({ file }) {
+  const [showSummary, setShowSummary] = useState(false);
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden" data-testid={`file-${file.file_id}`}>
+      <div className="p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <FileText className="w-5 h-5 text-slate-400" />
+          <div>
+            <p className="text-sm font-medium text-slate-900">{file.original_filename}</p>
+            <p className="text-xs text-slate-400 font-mono">{(file.size / 1024).toFixed(1)} KB</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {file.summary && (
+            <button onClick={() => setShowSummary(!showSummary)}
+              className="p-2 hover:bg-blue-50 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
+              data-testid={`toggle-summary-${file.file_id}`} title="View summary">
+              {showSummary ? <ChevronUp className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
+            </button>
+          )}
+          <a href={`${process.env.REACT_APP_BACKEND_URL}/api/files/${file.storage_path}`} target="_blank" rel="noopener noreferrer"
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
+            data-testid={`download-${file.file_id}`} title="Download file">
+            <Download className="w-4 h-4" />
+          </a>
+        </div>
+      </div>
+      {showSummary && file.summary && (
+        <div className="px-4 pb-4 pt-0">
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-2">AI Summary</p>
+            <SafeHTML html={file.summary.replace(/\n/g, '<br/>')} className="text-sm text-blue-900" />
+          </div>
+        </div>
+      )}
+      {!file.summary && (
+        <div className="px-4 pb-3"><p className="text-[11px] text-slate-400">No summary available yet</p></div>
+      )}
+    </div>
+  );
+}
 
 export default function CaseStudyDetailPage() {
   const { id } = useParams();
