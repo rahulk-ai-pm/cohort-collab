@@ -1,0 +1,120 @@
+{
+  "theme": "light",
+  "archetype": "4 (Swiss & High-Contrast / Corporate Enterprise)",
+  "design_philosophy": "Neo-Material / Modern Enterprise. A blend of Material Design's spatial logic with neo-minimalist raw aesthetics. It uses exposed bento grids, tactile but crisp elevations (not blurry dropshadows), and an authoritative, 'old money tech' color palette suitable for an elite IIM Kozhikode cohort.",
+  "typography": {
+    "headings": {
+      "font_family": "Cabinet Grotesk, sans-serif",
+      "weights": ["500", "700", "800"],
+      "tracking": "tracking-tight",
+      "usage": "Use for all page titles, hero sections, and bento card headers."
+    },
+    "body": {
+      "font_family": "Manrope, sans-serif",
+      "weights": ["400", "500", "600"],
+      "tracking": "tracking-normal",
+      "usage": "Standard readable text for case studies, discussions, and directory profiles."
+    },
+    "mono": {
+      "font_family": "IBM Plex Mono, monospace",
+      "usage": "Use for timestamps, tags, analytics numbers, and admin metadata."
+    },
+    "scales": {
+      "h1": "text-4xl sm:text-5xl lg:text-5xl font-extrabold tracking-tight",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3": "text-xl font-semibold",
+      "body": "text-base leading-relaxed text-slate-700",
+      "small": "text-sm text-slate-500",
+      "label": "text-xs font-bold uppercase tracking-[0.1em] text-slate-500"
+    }
+  },
+  "colors": {
+    "background": {
+      "base": "#F8FAFC",
+      "tailwind": "bg-slate-50",
+      "usage": "App background."
+    },
+    "surface": {
+      "base": "#FFFFFF",
+      "tailwind": "bg-white",
+      "usage": "Card and container backgrounds."
+    },
+    "primary": {
+      "base": "#1E293B",
+      "hover": "#0F172A",
+      "tailwind": "bg-slate-800 hover:bg-slate-900",
+      "text": "text-white",
+      "usage": "Primary buttons, heavy nav elements."
+    },
+    "accent": {
+      "base": "#991B1B",
+      "tailwind": "text-red-800 bg-red-50",
+      "usage": "Used sparingly for notifications, live indicators, or critical tags (nod to IIM colors)."
+    },
+    "text": {
+      "main": "#0F172A",
+      "muted": "#64748B",
+      "tailwind": "text-slate-900 and text-slate-500"
+    },
+    "border": {
+      "base": "#E2E8F0",
+      "tailwind": "border-slate-200"
+    }
+  },
+  "spacing_and_layout": {
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "padding": "p-6 md:p-8",
+    "grid": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "bento_spans": "col-span-1, md:col-span-2, lg:col-span-3 depending on widget importance."
+    },
+    "cards": {
+      "style": "bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200"
+    }
+  },
+  "surfaces_and_effects": {
+    "glassmorphism": "backdrop-blur-xl bg-white/80 border-b border-slate-200 (Used for sticky headers and the floating AI chatbot).",
+    "neo_material": "Crisp 1px borders combined with very subtle, tight shadows (shadow-sm). No massive, diffuse blurs.",
+    "hover_states": "Buttons use transform -translate-y-[1px] with increased shadow. Interactive cards get a slightly darker border on hover (border-slate-300)."
+  },
+  "motion_and_interaction": {
+    "transitions": "transition-all duration-200 ease-in-out",
+    "lists": "Staggered fade-in for cohort directory and discussion feeds.",
+    "modals": "Fade-in with scale up (95% to 100%)."
+  },
+  "components": {
+    "navigation": "Sticky top navigation. Glassmorphism effect. Must contain Logo, Nav Links (Dashboard, Directory, Case Studies, Projects), and User Avatar/Google Sign-out.",
+    "chatbot": "Floating bottom-right FAB. On click, expands into a glassmorphic chat window. Uses Gemini 3 Flash. Must be clearly identifiable as an AI assistant.",
+    "directory_cards": "Use 'cards' style. Include Avatar, Name, LinkedIn icon, Current Role, and a brief 'Aspirations' tag.",
+    "admin_dashboard": "Bento grid layout. Top row: Analytics summary (Active users, Chatbot queries). Bottom rows: File upload management and case study tables.",
+    "forms": "Use Shadcn Form, Input, Select, and Textarea. Inputs should have bg-slate-50, border-slate-200, and focus:ring-2 focus:ring-slate-800."
+  },
+  "icons_and_assets": {
+    "icon_library": "lucide-react",
+    "media": [
+      {
+        "category": "hero_background",
+        "url": "https://images.unsplash.com/photo-1741766936431-406804fc36c8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB1bml2ZXJzaXR5JTIwY2FtcHVzJTIwYnVpbGRpbmclMjBhYnN0cmFjdHxlbnwwfHx8fDE3NzQ3NjM2MDF8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Architectural building with geometric, modern design. Use for auth screen or landing page header."
+      },
+      {
+        "category": "cohort_placeholder",
+        "url": "https://images.unsplash.com/photo-1758518732175-5d608ba3abdf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBlb3BsZSUyMG1lZXRpbmclMjBvZmZpY2V8ZW58MHx8fHwxNzc0NzYzNjAwfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Business people in a meeting. Use as a header banner for the 'Cohort Discussions' or 'Projects' tab."
+      }
+    ]
+  },
+  "accessibility": {
+    "contrast": "All text must pass WCAG AA. Use text-slate-900 on white backgrounds.",
+    "focus": "All interactive elements must have visible focus rings (focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-800).",
+    "testing": "Add data-testid to all buttons, links, and forms (e.g., data-testid='google-signin-btn', data-testid='chatbot-fab')."
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the Neo-Material aesthetic: crisp borders, subtle shadows, and a clean slate/white palette.",
+    "Do not use generic blue defaults. Use the exact Slate/Indigo and Accent colors provided.",
+    "Ensure the layout is responsive, defaulting to grid-cols-1 on mobile and utilizing the bento grid spanning on desktop.",
+    "Implement the AI chatbot as a persistent floating element across member pages.",
+    "For the admin analytics, use Shadcn charts or simple metric cards with the 'mono' font for numbers.",
+    "Use Cabinet Grotesk for all major headings. If it's unavailable, fallback to a strong geometric sans like Satoshi or Inter with tight tracking."
+  ]
+}
